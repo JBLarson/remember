@@ -3,8 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 import uuid
-
-db = SQLAlchemy()
+from app import db
 
 class UserProfile(db.Model):
     __tablename__ = 'user_profiles'

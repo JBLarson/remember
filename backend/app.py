@@ -16,9 +16,12 @@ def create_app(config_class=Config):
     # Initialize extensions with app
     db.init_app(app)
     migrate.init_app(app, db)
-    CORS(app, origins=["http://localhost:3000"])
+    CORS(app, origins=["http://localhost:5173"])
     
     # Register blueprints
+    from routes import memories
+    app.register_blueprint(memories.bp, url_prefix='/api/memories')
+    
     """
     from routes import auth, memories, tags, insights
     app.register_blueprint(auth.bp, url_prefix='/api/auth')

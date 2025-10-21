@@ -1,13 +1,17 @@
 # routes/memories.py
 from flask import Blueprint, request, jsonify
-from models import db, Memory, MemoryVersion, Tag, AuditLog
+#from models import MemoryVersion, Tag, AuditLog
+from app import db
+from models import Memory
 from middleware.auth_middleware import require_auth
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 
 bp = Blueprint('memories', __name__)
+#bp = Blueprint('memories', __name__, strict_slashes=False)
 
-@bp.route('/', methods=['GET'])
+
+@bp.route('', methods=['GET'])
 @require_auth
 def get_memories(current_user):
     """Get all memories for current user"""
