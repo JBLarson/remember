@@ -1,11 +1,13 @@
 # routes/memories.py
 from flask import Blueprint, request, jsonify
 #from models import MemoryVersion, Tag, AuditLog
-from app import db
-from models import Memory, MemoryVersion, AuditLog
+from models import db, Memory, MemoryVersion, AuditLog
 from middleware.auth_middleware import require_auth
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
+from services.embedding_service import get_embedding
+
+
 
 bp = Blueprint('memories', __name__)
 #bp = Blueprint('memories', __name__, strict_slashes=False)
@@ -46,15 +48,13 @@ def get_memories(current_user):
 @bp.route('/', methods=['POST'])
 @require_auth
 def create_memory(current_user):
-    """Create new memory"""
+    """Create new memory with embedding"""
     data = request.get_json()
     
-    # Validate
-    if not data.get('encrypted_content'):
-        return jsonify({'error': 'Encrypted content required'}), 400
-    
     try:
-        # Create memory object
+        # Generate embedding for the content
+        embedding = get_embedding(data['encrypted_content'])
+        
         memory = Memory(
             user_id=current_user.id,
             encrypted_content=data['encrypted_content'],
@@ -62,35 +62,13 @@ def create_memory(current_user):
             year=data.get('year'),
             age=data.get('age'),
             grade=data.get('grade'),
-            date_precision=data.get('date_precision', 'approximate'),
             confidence_level=data.get('confidence_level'),
             emotional_valence=data.get('emotional_valence'),
-            emotional_intensity=data.get('emotional_intensity'),
-            body_sensations=data.get('body_sensations')
+            visibility=data.get('visibility', 'private'),
+            embedding=embedding  # Store the vector
         )
         
-        # Handle tags
-        if 'tag_ids' in data:
-            tags = Tag.query.filter(
-                Tag.id.in_(data['tag_ids']),
-                Tag.user_id == current_user.id
-            ).all()
-            memory.tags = tags
-        
-        # Save
         db.session.add(memory)
-        db.session.commit()
-        
-        # Audit log
-        audit = AuditLog(
-            user_id=current_user.id,
-            action='memory_created',
-            resource_type='memory',
-            resource_id=memory.id,
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
-        db.session.add(audit)
         db.session.commit()
         
         return jsonify({
@@ -98,12 +76,12 @@ def create_memory(current_user):
             'memory': memory.to_dict()
         }), 201
         
-    except IntegrityError as e:
-        db.session.rollback()
-        return jsonify({'error': 'Database integrity error'}), 400
     except Exception as e:
         db.session.rollback()
+        print(f"Error creating memory: {e}")
         return jsonify({'error': str(e)}), 500
+
+
 
 
 @bp.route('/<uuid:memory_id>', methods=['PUT'])
@@ -117,9 +95,11 @@ def update_memory(current_user, memory_id):
     
     data = request.get_json()
     
-    # Update fields - handle None/null values explicitly
+    # Update fields
     if 'encrypted_content' in data:
         memory.encrypted_content = data['encrypted_content']
+        # Regenerate embedding if content changed
+        memory.embedding = get_embedding(data['encrypted_content'])
     
     # For nullable fields, always update even if None
     memory.year = data.get('year')

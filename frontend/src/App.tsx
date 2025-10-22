@@ -4,6 +4,8 @@ import { useAuth } from './contexts/AuthContext'
 import Login from './components/auth/Login'
 import ViewMemories from './pages/ViewMemories'
 import AddMemory from './pages/AddMemory'
+import Analyze from './pages/Analyze'
+
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -30,6 +32,15 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         
+        <Route
+          path="/analyze"
+          element={
+            <ProtectedRoute>
+              <Analyze />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/memories"
           element={

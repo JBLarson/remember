@@ -3,7 +3,12 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 import uuid
-from app import db
+from flask_sqlalchemy import SQLAlchemy
+from pgvector.sqlalchemy import Vector
+
+
+db = SQLAlchemy()
+
 
 class UserProfile(db.Model):
     __tablename__ = 'user_profiles'
@@ -54,7 +59,11 @@ class Memory(db.Model):
     emotional_valence = db.Column(db.Integer)
     emotional_intensity = db.Column(db.Integer)
     body_sensations = db.Column(JSONB)
-    
+
+    # vector embedding for RAG
+    embedding = db.Column(Vector(1024), nullable=True)  # voyage-large-2-instruct is 1024 dimensions
+
+
     # Status
     visibility = db.Column(db.String(20), default='private')
     is_sealed = db.Column(db.Boolean, default=False)
