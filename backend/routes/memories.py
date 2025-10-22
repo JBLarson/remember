@@ -2,7 +2,7 @@
 from flask import Blueprint, request, jsonify
 #from models import MemoryVersion, Tag, AuditLog
 from app import db
-from models import Memory
+from models import Memory, MemoryVersion, AuditLog
 from middleware.auth_middleware import require_auth
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
@@ -11,7 +11,7 @@ bp = Blueprint('memories', __name__)
 #bp = Blueprint('memories', __name__, strict_slashes=False)
 
 
-@bp.route('', methods=['GET'])
+@bp.route('/', methods=['GET'])
 @require_auth
 def get_memories(current_user):
     """Get all memories for current user"""
@@ -109,7 +109,7 @@ def create_memory(current_user):
 @bp.route('/<uuid:memory_id>', methods=['PUT'])
 @require_auth
 def update_memory(current_user, memory_id):
-    """Update memory (creates version)"""
+    """Update existing memory"""
     memory = Memory.query.filter_by(
         id=memory_id,
         user_id=current_user.id
@@ -117,26 +117,15 @@ def update_memory(current_user, memory_id):
     
     data = request.get_json()
     
-    # Create version before updating
-    latest_version = MemoryVersion.query.filter_by(
-        memory_id=memory.id
-    ).order_by(MemoryVersion.version_number.desc()).first()
-    
-    new_version_number = (latest_version.version_number + 1) if latest_version else 1
-    
-    version = MemoryVersion(
-        memory_id=memory.id,
-        version_number=new_version_number,
-        encrypted_content=memory.encrypted_content,
-        encryption_key_id=memory.encryption_key_id,
-        confidence_level=memory.confidence_level,
-        emotional_valence=memory.emotional_valence,
-        change_note=data.get('change_note')
-    )
-    
-    # Update memory
+    # Update fields - handle None/null values explicitly
     if 'encrypted_content' in data:
         memory.encrypted_content = data['encrypted_content']
+    
+    # For nullable fields, always update even if None
+    memory.year = data.get('year')
+    memory.age = data.get('age')
+    memory.grade = data.get('grade')
+    
     if 'confidence_level' in data:
         memory.confidence_level = data['confidence_level']
     if 'emotional_valence' in data:
@@ -144,13 +133,11 @@ def update_memory(current_user, memory_id):
     
     memory.updated_at = datetime.utcnow()
     
-    db.session.add(version)
     db.session.commit()
     
     return jsonify({
         'message': 'Memory updated',
-        'memory': memory.to_dict(),
-        'version': new_version_number
+        'memory': memory.to_dict()
     })
 
 
@@ -175,4 +162,25 @@ def get_memory_timeline(current_user, memory_id):
             'change_note': v.change_note,
             'created_at': v.created_at.isoformat()
         } for v in versions]
+    })
+
+
+
+
+
+
+@bp.route('/<uuid:memory_id>', methods=['DELETE'])
+@require_auth
+def delete_memory(current_user, memory_id):
+    """Delete a memory"""
+    memory = Memory.query.filter_by(
+        id=memory_id,
+        user_id=current_user.id
+    ).first_or_404()
+    
+    db.session.delete(memory)
+    db.session.commit()
+    
+    return jsonify({
+        'message': 'Memory deleted'
     })

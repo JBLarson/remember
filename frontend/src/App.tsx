@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
 import Login from './components/auth/Login'
 import ViewMemories from './pages/ViewMemories'
+import AddMemory from './pages/AddMemory'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -34,6 +35,15 @@ function App() {
           element={
             <ProtectedRoute>
               <ViewMemories />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/memories/add"
+          element={
+            <ProtectedRoute>
+              <AddMemory />
             </ProtectedRoute>
           }
         />
