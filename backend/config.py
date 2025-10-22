@@ -11,7 +11,7 @@ class Config:
     # SQLAlchemy - uses direct Postgres connection
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ECHO = True  # Log SQL queries in development
+    SQLALCHEMY_ECHO = False  # Log SQL queries in development
     
     # Supabase - for auth verification
     SUPABASE_URL = os.getenv('SUPABASE_URL')
